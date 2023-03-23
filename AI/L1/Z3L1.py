@@ -32,6 +32,12 @@ def trojka(reka):
                 if(reka[j][1] == reka[i][1] and reka[j][2] == reka[i][2] and reka[k][1] == reka[i][1] and reka[k][2] == reka[i][2]):#same numery trzeba dodać kolory
                     return 1
     return 0
+
+def dwiepary(reka):
+    if(para(reka) == 2):
+        return True
+    return False
+
 #strit pięć kart po sobie w kolejności od najmniejszej do największej
 def strit(reka):
     for i in range(len(reka)):
@@ -47,7 +53,7 @@ def strit(reka):
     return True
 
 def kolor(reka):
-    for i in range(len(reka) - 1):
+    for i in range(4):
         if(reka[i][0] != reka[i + 1][0]):
                 return False
     return True
@@ -57,11 +63,13 @@ def full(reka):
     if(trojka(reka) and para(reka)):
         return True
     return False
+
 #def kareta(reka): 4 te same karty 
 def kareta(reka):
     if(para(reka) == 2):
         return True
     return False
+
 """
     for i in range(len(reka) ):
         is_four = 0
@@ -75,11 +83,72 @@ def kareta(reka):
 """
 
 def poker(reka):
-    if(strit and kolor):
+    if(strit(reka) and kolor(reka)):
         return True
     return False
 
+
+def blot_win(blot, fig):
+    if kareta(fig):
+        if poker(blot):
+            return True
+        else:
+            return False
+    elif full(fig):
+        if poker(blot) or kareta(blot):
+            return True
+        else:
+            return False
+    elif trojka(fig):
+        if strit(blot) or kolor(blot) or full(blot) or kareta(blot):
+            return True
+        else:
+            return False
+    elif dwiepary(fig):
+        if trojka(blot) or strit(blot) or kolor(blot):
+            return True
+        else:
+            return False
+    else:
+        if dwiepary(blot) or trojka(blot) or strit(blot) or kolor(blot):
+            return True
+        else:
+            return False
+
+def gra(blotki, figury):
+    n = 100000
+    b = 0
+    for round in range(n):
+        #random.shuffle(blotki)
+        #blotkarz = blotki[:5]
+        #random.shuffle(figury)
+        #figurant = figury[:5]
+        blotkarz = reka(blotki)
+        figurant = reka(figury)
+        if blot_win(blotkarz, figurant):
+            b += 1
+    pstwo = b / n
+    print(pstwo)
+
+gra(talia_blotkarza, talia_figuranta)
+B1 = ["K07", "k07", "T07", "P07",
+      "K08", "k08", "T08", "P08",
+      "K09", "k09", "T09", "P09",]
+B2 = ["K02",
+      "K03",
+      "K04",
+      "K05",
+      "K06",
+      "K07",
+      "K08",
+      "K09",
+      "K10"]
+gra(B1, talia_figuranta)
+gra(B2, talia_figuranta)
+
+
 '''
+
 cards = {2,3,4,5,6,7,8,9,10,11,12,13,14}#11 - walet, #12 - dama, #13 - król #14 - as
 print(cards)
 print(talia_blotkarza)
@@ -104,6 +173,7 @@ print("czy kareta : ",kareta(test_reka))
 #milion gier albo miliard wygrane blotkarza/ ilosc wszystkich gier
 #bierzemy talie blotkarza i puszczamy mu np 1000 talii figuranta liczymy z tego % wygranych i tak dla powiedmy miliona talii blotkarza
 #potem bierzemy najwyższy procent blotkarza i jego talii co później zwracamy. 
+'''
 BLOTNR = 10000
 FIGNR = 10000 # dla 1000 000 trwa 16 h sprawdzanie ok
 wynik = 0
@@ -158,5 +228,6 @@ for i in range(BLOTNR):
     wynik += blotkarz_wygrane/FIGNR
 wynik /= BLOTNR/100 # wynik /1 000 / 1 000 000 000 * 100% = procent wygranych blotkarza minus trzy zera 000 potem sie doda je z powrtoem
 print("Wynik: ",wynik,"%")
+'''
 #print("Blotkarz: ",blotkarz)
 #print("Figurant: ",figurant)

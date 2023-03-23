@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QApplication, QWidget
 
 KING = 6
 ROOK = 4
+WHITE = True
+BLACK = False
 class MainWindow(QWidget):
     def __init__(self, board):
         super().__init__()
@@ -27,7 +29,7 @@ def GUI(board):
     window.show()
     app.exec()
 
-#def update_row(boardstate, piece, column):# do zmiany stringa
+#def update_row(boardstate, piece, column):# do zmiany stringamove_piece
     
 
 def FEN_Gen(piece,position,board):# do dolozenia bierki na szachownice
@@ -40,15 +42,17 @@ def FEN_Gen(piece,position,board):# do dolozenia bierki na szachownice
 def postranslate(position):
     return (ord(position[0]) - 97)  + (int(position[1]) - 1) * 8 
 
-'''
-def whereto_naive(board, position, moves, color):
-    if (moves >= 100):
-        return 100
-    
-    column = ord(position[0]) - 97 
-    line = int(position[1]) - 1
-    if(column < 4 and )
-'''
+
+def whereto_naive(board, moves, color):
+    if (moves >= 40):#maks ruchow
+        return moves
+    if (board.is_checkmate()):# jezeli osiagnelismy mata zwaracmy # ruchow
+        return moves
+    if (color == True):#WIP trzeba wygrnerowac wszystkie ruchy biale i czarne
+        for move in board.legal_moves:
+            board.push(move)
+            moves = whereto_naive(board, moves + 1, False)
+            board.pop()
 
 start = input(" Enter starting positions : ")
 White_First = (input(" Who moves first?  : ") == "white")
@@ -66,9 +70,9 @@ if(White_First):
 else:
     board = chess.Board(basicboardb)
 
-board._set_piece_at(WKint, KING, True)
-board._set_piece_at(WRint, ROOK, True)
-board._set_piece_at(BKint, KING, False)
+board._set_piece_at(WKint, KING, WHITE)
+board._set_piece_at(WRint, ROOK, WHITE)
+board._set_piece_at(BKint, KING, BLACK)
 #while(!is_mat):
       #if
 #print(update_row("8", "K", 0))
@@ -77,8 +81,9 @@ print(WR)
 print(BK)
 #print(start)
 GUI(board)
-
-board._set_piece_at(BKint+3, KING, False)
+nextmove = chess.Move.from_uci("e3f4")
+board.push(nextmove)
+#board._set_piece_at(BKint+3, KING, False)
 
 '''
 #GUI(board)
@@ -90,7 +95,13 @@ while (board.is_checkmate() == False):
 
 '''
  
-#    print(board)
+print(board)
+
+nextmove = chess.Move.from_uci("f4f5")
+board.push(nextmove)
+print(board)
+board.pop()
+print(board)
     #black move
 #    move = input()
 #    board.push_san(move)
