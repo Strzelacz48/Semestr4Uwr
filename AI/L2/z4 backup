@@ -1,0 +1,114 @@
+from typing import Any, Set
+import random
+#kolejka do BFS-a
+queue = []
+
+# - ściana labiryntu, nie można przejść G - cele, w któryh trzeba się znaleźć, B - punkty startowo-docelowe
+# S - punkty startowe "spacja" - puste miejsce
+#funkcje pomocnicze do ruszania sie po labiryncie
+#=================================================================================================
+def moveup(x: int, y: int) -> tuple:
+    if(iswall(x, y - 1)):
+        return (x,y)
+    return (x, y - 1)
+
+def movedown(x: int, y: int) -> tuple:
+    if(iswall(x, y + 1)):
+        return (x,y)
+    return (x, y + 1)
+
+def moveleft(x: int, y: int) -> tuple:
+    if(iswall(x - 1, y)):
+        return (x,y)
+    return (x - 1, y)
+
+def moveright(x: int, y: int) -> tuple:
+    if(iswall(x + 1, y)):
+        return (x,y)
+    return (x + 1, y)
+
+# funkcje pomocnicze do sprawdzania czy można przejść na dane pole
+#===================================================================================================
+def iswall(x: int, y: int) -> bool:
+    return labirynt[y][x] == "#"
+
+def isgoal(x: int, y: int) -> bool:
+    return labirynt[y][x] == "G"
+
+def isstart(x: int, y: int) -> bool:
+    return labirynt[y][x] == "S"
+
+def isblank(x: int, y: int) -> bool:
+    return labirynt[y][x] == " "
+
+#funkcja do stworzenia labiryntu
+#===================================================================================================
+def create_maze() -> list:
+    maze = []
+    with open("maze.txt") as f:
+        for line in f:
+            maze.append(line.strip())
+    return maze
+
+def init_S_list(maze: list) -> list:
+    S_list = []
+    for y, line in enumerate(maze):
+        for x, char in enumerate(line):
+            if char == "S":
+                S_list.append((x, y))
+    return S_list
+
+def init_G_list(maze: list) -> list:
+    G_list = []
+    for y, line in enumerate(maze):
+        for x, char in enumerate(line):
+            if char == "G":
+                G_list.append((x, y))
+    return G_list
+
+def init_B_list(maze: list) -> list:
+    B_list = []
+    for y, line in enumerate(maze):
+        for x, char in enumerate(line):
+            if char == "B":
+                B_list.append((x, y))
+    return B_list
+
+def all_coomandos_in_G() -> bool:
+    for commando in commando_list:
+        if commando not in G_list:
+            return False
+    return True
+
+#funkcja do wyświetlania labiryntu
+#===================================================================================================
+def print_maze(maze: list) -> None:
+    for line in maze:
+        print(line)
+
+#funkcja uzywajaca BFS do znalezienia sciezki do wyjscia
+#===================================================================================================
+def BFS(x: int, y: int, moves: int) -> bool:#WIP
+    queue.append((x, y))
+    while queue:
+        if moves >= 150:
+            return False
+        x, y = queue.pop(0)
+        if all_coomandos_in_G():
+            return True
+        offset = random.randint(0, 3)
+        if offset == 0:
+            
+        queue.append(moveup(x, y))
+        queue.append(movedown(x, y))
+        queue.append(moveleft(x, y))
+        queue.append(moveright(x, y))
+
+labirynt = create_maze()
+S_list = init_S_list(labirynt)
+commando_list = S_list
+G_list = init_G_list(labirynt)
+B_list = init_B_list(labirynt)
+print_maze(labirynt)
+print(labirynt[2][3])
+print(labirynt[3][3])

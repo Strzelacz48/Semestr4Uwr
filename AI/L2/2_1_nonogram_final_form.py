@@ -1,195 +1,236 @@
-# P1 ZAD 5 (OBRAZKI LOGICZNE)
 import random
+from typing import Set, Any
+
+
+def next_perm(perm, n, arr, dl, inn, out, pref, to_xor): #WIP
+    return to_xor
+    return next_perm(perm, n, arr, dl, inn, out, pref, to_xor)
+
 
 def opt_dist(arr, dl):
-    pref = 0
-    suf = 0
-    inn = 0
-    for i in range(dl):
-        if arr[i] == 0:
-            inn += 1
-    for i in range(dl, len(arr)):
+    out = [] # do xororwania za k-tym blokiem
+    inn = [] # do xorowania wewn k-tego bloku
+    pref = 0 # do xorowania przed pierwszym
+    n = len(dl)
+    x = 0
+    start = []
+    for k in range(n):
+        start.append(x)
+        inn.append(0)
+        out.append(0)
+        for i in range(dl[k]):
+            if arr[x] == 0:
+                inn[k] += 1
+            x += 1
+        if x < len(arr) and arr[x] == 1:
+            out[k] += 1
+        x += 1
+    for i in range(x, len(arr)):
         if arr[i] == 1:
-            suf += 1
-    x = pref + inn + suf
-    a = 1
-    b = dl
-    while b < len(arr):
-        if arr[a-1] == 1:
-            pref += 1
-        else: # arr[a-1] == 0
-            inn -= 1
-        if arr[b] == 1:
-            suf -= 1
-        else: # arr[b] == 0
-            inn += 1
-        x = min(x, pref + suf + inn)
-        a += 1
-        b += 1
-    return x
+            out[n-1] += 1
+    to_xor = sum(inn) + sum(out)
+    return next_perm(start, n, arr, dl, inn, out, pref, to_xor)
+
+###############################################################
+###############################################################
 
 
-def printtab(tab):
-    for i in range(y):
-        for j in tab[i]:
-            fout.write(znak[j])
+def read_input():
+    global width, height, dr, dc
+    fin = open("zad_input.txt", 'r')
+    line = fin.readline()[:-1]
+    xy = line.split(" ")
+    height = int(xy[0])
+    width = int(xy[1])
+    sdr = []
+    for i in range(height):
+        line = fin.readline()[:-1]
+        ts = line.split(" ")
+        ti = []
+        for c in ts:
+            ti.append(int(c))
+        sdr.append(tuple(ti))
+    dr = tuple(sdr)
+    sdc = []
+    for i in range(width):
+        line = fin.readline()[:-1]
+        ts = line.split(" ")
+        ti = []
+        for c in ts:
+            ti.append(int(c))
+        sdc.append(tuple(ti))
+    dc = tuple(sdc)
+    fin.close()
+    return width, height, dr, dc
+
+
+def write_output(tab):
+    fout = open("zad_output.txt", 'w')
+    for t in tab:
+        for i in t:
+            if i:
+                fout.write(znak[0])
+            else:
+                fout.write(znak[1])
         fout.write("\n")
+    print("eureka!!!")
+    fout.close()
+    exit()
 
 
 def maketab(x, y):
-    tab = []
+    rows = []
     for i in range(y):
         t = []
         for j in range(x):
-            t.append(random.choice(range(2)))
-        tab.append(t)
-    return tab
-
-
-def makelist(n):
-    s = []
-    for i in range(n):
-        s.append(i)
-    return s
-
-
-def opt_init(x, y, tab, dls):
-    opt_lines = []
-    opt_columns = []
-    for i in range(y):
-        opt_lines.append(opt_dist(tab[i], dls[0][i]))
+            t.append(random.choice((True, False)))
+        rows.append(t)
+    cols = []
     for j in range(x):
-        arr = []
+        t = [False for i in range(y)]
+        cols.append(t)
+    for j in range(x):
         for i in range(y):
-            arr.append(tab[i][j])
-        opt_columns.append(opt_dist(arr, dls[1][j]))
-    return [opt_lines, opt_columns]
+            cols[j][i] = rows[i][j]
+    return rows, cols
 
 
-def szukaj_rozw (x, y, dls):# ^ xor | or
-    tab = maketab(x, y)
-    bad = makelist(x)
-    opts = opt_init(x, y, tab, dls)
-    koniec = False
-    #print(opts)
-    #printtab(tab)
-    for round in range(N):
-        column = random.choice(bad)
-        #print(column)
-        arr = []
-        for i in range(y):
-            arr.append(tab[i][column])
-        maxi = -1000
-        to_xor = -1
-        for i in range(y):
-            tab[i][column] ^= 1
-            arr[i] ^= 1
-            opt_lin = opt_dist(tab[i], dls[0][i])
-            opt_col = opt_dist(arr, dls[1][column])
-            dif = opts[0][i] + opts[1][column] - opt_lin - opt_col
-            if dif > maxi:
-                maxi = dif
-                to_xor = i
-            tab[i][column] ^= 1
-            arr[i] ^= 1
-        tab[to_xor][column] ^= 1
-        arr[to_xor] ^= 1
-        opts[1][column] = opt_dist(arr, dls[1][column])
-        opts[0][to_xor] = opt_dist(tab[to_xor], dls[0][to_xor])
-        if opts[1][column] == 0:
-            bad.remove(column)
-        if len(bad) == 0:
-            for i in range(x):
-                bad.append(i)
-            koniec = True
-            for line in range(y):
-                if opts[0][line] != 0:
-                    koniec = False
-                    break
-        if koniec:
-            break
+def printtab(tab):
+    for t in tab:
+        for i in t:
+            if i:
+                print(znak[0], end="")
+            else:
+                print(znak[1], end="")
+        print()
+    print()
 
-        #printtab(tab)
-        #print(bad)
-        #print()
-    if koniec:
-        printtab(tab)
-        return True
-    else:
-        #printtab(tab)
-        #fout.write('\n')
+
+def check_rows_cols(rows, cols):
+    for i in range(height):
+        for j in range(width):
+            if rows[i][j] != cols[j][i]:
+                print("!")
+
+
+def b_init():
+    bad_rows, bad_cols = [], []
+    for i in range(height):
+        bad_rows.append(i)
+    for i in range(width):
+        bad_cols.append(i)
+    brt = [True for i in range(height)]
+    bct = [True for i in range(width)]
+    return bad_rows, bad_cols, brt, bct
+
+
+def opt_init(row, col):
+    row_opt = []
+    for i in range(height):
+        row_opt.append(opt_dist(row[i], dr[i]))
+    col_opt = []
+    for i in range(width):
+        col_opt.append(opt_dist(col[i], dc[i]))
+    return row_opt, col_opt
+
+
+def rozw():
+    row, col = maketab(width, height)
+    row_opt, col_opt = opt_init(row, col)
+    bad_rows, bad_cols, br_t, bc_t = b_init()
+    for round in range(100000):
+        which = random.choice((True, False))
+        if which:
+            if fcja(row, col, bad_rows, bad_cols, br_t, bc_t, height, width, dr, dc, row_opt, col_opt):
+                write_output(row)
+        else:
+            if fcja(col, row, bad_cols, bad_rows, bc_t, br_t, width, height, dc, dr, col_opt, row_opt):
+                write_output(row)
+
+
+def fcja(tab_x, tab_y, bad_x, bad_y, ifb_x, ifb_y, siz_x, siz_y, dx, dy, opt_x, opt_y):
+    if len(bad_x) == 0:
         return False
+    x = random.choice(bad_x)
+    best = -100
+    y_xor = 0
+    oo_x = 0
+    oo_y = 0
+    yy = random.sample(range(siz_y), max(siz_y//2, 1))
+    for y in yy:
+        tab_x[x][y] ^= 1
+        tab_y[y][x] ^= 1
+        o_x = opt_dist(tab_x[x], dx[x])
+        o_y = opt_dist(tab_y[y], dy[y])
+        dif = opt_x[x] + opt_y[y] - o_x - o_y
+        if dif > best:
+            best = dif
+            y_xor = y
+            oo_x = o_x
+            oo_y = o_y
+        tab_x[x][y] ^= 1
+        tab_y[y][x] ^= 1
+
+    tab_x[x][y_xor] ^= 1
+    tab_y[y_xor][x] ^= 1
+    opt_x[x] = oo_x
+    opt_y[y_xor] = oo_y
+    if not ifb_y[y_xor] and oo_y > 0:
+        bad_y.append(y_xor)
+        ifb_y[y_xor] = True
+    elif oo_y == 0 and ifb_y[y_xor]:
+        bad_y.remove(y_xor)
+        ifb_y[y_xor] = False
+    if oo_x == 0:
+        bad_x.remove(x)
+        ifb_x[x] = False
+
+    if len(bad_y) == len(bad_x) == 0:
+        return True
+    return False
+
+    # losuj czy wiersz czy kolumna
+    # losuj po 3 elementy i sprawdź poprawę
+    # wybierz opcję z najlepszą poprawą i zmień na stałe
 
 
-###############################################################
-###############################################################
+global width, height, dr, dc
+znak = ("#", ".")
+read_input()
+for rrr in range(10):
+    rozw()
+write_output([["przegraliśmy :'("]])
 
-fin = open("zad5_input.txt", 'r')
-fout = open("zad5_output.txt", 'w')
-znak = [".", "#"]
-line = fin.readline()[:-1]
-xy = line.split(" ")
-x = int(xy[0])
-y = int(xy[1])
-N = min(100000, x*y*1000)
-#print(N)
-dls = [[], []]
-for i in range(y):
-    line = fin.readline()[:-1]
-    dls[0].append(int(line))
-for i in range(x):
-    line = fin.readline()[:-1]
-    dls[1].append(int(line))
+# s = [2, 3, 4, 2]
+# arr = [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1]
+# print(opt_dist(arr, s))
 
-for rounda in range(100):
-    if szukaj_rozw(x, y, dls):
-        break
-    print(rounda)
-
-fin.close()
-fout.close()
+# osobne listy: bad_rows i bad_columns
+# obrócona tablica, żeby nie przepisywać
+# startuj z samych dobrych wierszy
+# przesunięcia bloków zamiast xorowania pikseli
+# zrób szybszy opt_dist
 
 """
-7 7
-1
+10 10
+4
+6
+3 4
+4 5
+4 5
+5 4
+5 2
+6
+6
+2 2
 3
 5
-7
+9
+10
+2 4
+5 3
+6 3
+9
 5
 3
-1
-7
-5
-5
-3
-3
-1
-1
-
-
-12 12
-0
-0
-8
-8
-8
-8
-8
-8
-8
-8
-0
-0
-0
-0
-8
-8
-8
-8
-8
-8
-8
-8
-0
-0
 """
