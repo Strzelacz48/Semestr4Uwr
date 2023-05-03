@@ -1,5 +1,5 @@
 import java.util.HashMap;
-@ExtrndWith(MockitoExtension.class)
+
 public class Car {
     int id;
     HashMap<String, Long> yearMillage;
