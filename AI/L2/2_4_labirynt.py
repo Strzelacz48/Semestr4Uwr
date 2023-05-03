@@ -1,187 +1,395 @@
-from typing import Any, Set
+import copy
+import queue
 import random
 
-from enum import Enum
+# ZADANIE 4 WERSJA DZIAŁAJĄCA
 
-#kolejka do BFS-a
-#queue = []
+########################################################################################################################
+# FUNKCJE 1
+########################################################################################################################
+import reportlab.graphics.renderSVG
 
-# - ściana labiryntu, nie można przejść G - cele, w któryh trzeba się znaleźć, B - punkty startowo-docelowe
-# S - punkty startowe "spacja" - puste miejsce
-#funkcje pomocnicze do ruszania sie po labiryncie
-#=================================================================================================
-def moveup(x: int, y: int) -> tuple:
-    if(iswall(x, y - 1)):
-        return (x,y)
-    return (x, y - 1)
 
-def movedown(x: int, y: int) -> tuple:
-    if(iswall(x, y + 1)):
-        return (x,y)
-    return (x, y + 1)
+class Stan:
+    def __init__(self, t, m):
+        self.tab = t
+        self.move = m
 
-def moveleft(x: int, y: int) -> tuple:
-    if(iswall(x - 1, y)):
-        return (x,y)
-    return (x - 1, y)
 
-def moveright(x: int, y: int) -> tuple:
-    if(iswall(x + 1, y)):
-        return (x,y)
-    return (x + 1, y)
+def read_input():
+    fin = open("zad_input.txt", 'r')
+    ww = [] #sciany
+    gg = [] #cele
+    kk = [] #komandosi
+    while line := fin.readline()[:-1]:
+        w = [False for i in range(len(line))]
+        g = [False for i in range(len(line))]
+        k = [False for i in range(len(line))]
+        for x in range(len(line)):
+            if line[x] == "#":
+                w[x] = True
+            elif line[x] == "G":
+                g[x] = True
+            elif line[x] == "B":
+                g[x] = True
+                k[x] = True
+            elif line[x] == "S":
+                k[x] = True
+        ww.append(w)
+        gg.append(g)
+        kk.append(k)
+    fin.close()
+    h = len(ww)
+    w = len(ww[0])
+    return Stan(kk, ""), ww, gg, h, w
+    # shallow copy - co to?
 
-# funkcje pomocnicze do sprawdzania czy można przejść na dane pole
-#===================================================================================================
-def iswall(x: int, y: int) -> bool:
-    return labirynt[y][x] == "#"
 
-def isgoal(x: int, y: int) -> bool:
-    return labirynt[y][x] == "G"
+def write_output(stan):
+    fout = open("zad_output.txt", 'w')
+    fout.write(stan.move + '\n')
+    fout.close()
+    exit()
 
-def isstart(x: int, y: int) -> bool:
-    return labirynt[y][x] == "S"
 
-def isblank(x: int, y: int) -> bool:
-    return labirynt[y][x] == " "
+def printtab(tab):
+    # print("\n".join([str(row) for row in tab]))
+    for i in tab:
+        for j in i:
+            if j:
+                print("&", end="")
+            else:
+                print(".", end="")
+        print()
+    print()
 
-#funkcja do stworzenia labiryntu
-#===================================================================================================
-def create_maze() -> list:
-    maze = []
-    with open("maze.txt") as f:
-        for line in f:
-            maze.append(line.strip())
-    return maze
+########################################################################################################################
 
-def init_S_list(maze: list) -> list:
-    S_list = []
-    for y, line in enumerate(maze):
-        for x, char in enumerate(line):
-            if char == "S" or char == "B":
-                S_list.append((x, y))
-    return S_list
 
-def init_G_list(maze: list) -> list:
-    G_list = []
-    for y, line in enumerate(maze):
-        for x, char in enumerate(line):
-            if char == "G" or char == "B":
-                G_list.append((x, y))
-    return G_list
+def move_up(stan):
+    ludz = stan.tab
+    moved = False
+    for col in range(1, width - 1):
+        for row in range(1, height - 1):
+            if ludz[row + 1][col] and not wall[row][col]:
+                ludz[row][col] = True
+                ludz[row + 1][col] = False
+                moved = True
+    if moved:
+        stan.move += "U"
+    return moved
 
-def init_B_list(maze: list) -> list:
-    B_list = []
-    for y, line in enumerate(maze):
-        for x, char in enumerate(line):
-            if char == "B":
-                B_list.append((x, y))
-    return B_list
 
-def all_comandos_in_G() -> bool:
-    for commando in commando_list:
-        if commando not in G_list:
+def move_down(stan):
+    ludz = stan.tab
+    moved = False
+    for col in range(1, width - 1):
+        for row in range(height - 2, 0, -1):
+            if ludz[row - 1][col] and not wall[row][col]:
+                ludz[row][col] = True
+                ludz[row - 1][col] = False
+                moved = True
+    if moved:
+        stan.move += "D"
+    return moved
+
+
+def move_left(stan):
+    ludz = stan.tab
+    moved = False
+    for row in range(1, height - 1):
+        for col in range(1, width - 1):
+            if ludz[row][col + 1] and not wall[row][col]:
+                ludz[row][col] = True
+                ludz[row][col + 1] = False
+                moved = True
+    if moved:
+        stan.move += "L"
+    return moved
+
+
+def move_right(stan):
+    ludz = stan.tab
+    moved = False
+    for row in range(1, height - 1):
+        for col in range(width - 2, 0, -1):
+            if ludz[row][col - 1] and not wall[row][col]:
+                ludz[row][col] = True
+                ludz[row][col - 1] = False
+                moved = True
+    if moved:
+        stan.move += "R"
+    return moved
+
+########################################################################################################################
+
+
+def losowe_ruchy(stan, n): # losowo ruszamy w ta sama strone
+    while len(stan.move) < n:
+        m = random.choice(range(16)) + 1
+        modulo = random.choice(range(4))
+        for j in range(m):
+            if modulo == 0:
+                masens = move_up(stan)
+            elif modulo == 1:
+                masens = move_right(stan)
+            elif modulo == 2:
+                masens = move_down(stan)
+            else:
+                masens = move_left(stan)
+            if zwyciestwo(stan):
+                print("losowo")
+                write_output(stan)
+                break
+            if not masens:
+                break
+    return stan
+
+
+def count_s(tab):
+    ile = 0
+    for i in tab:
+        for j in i:
+            if j:
+                ile += 1
+    return ile
+
+
+def losowe_best(stan, n):# wybiera najlepszy ruh zmniejszajacy niepewnosc
+    best = count_s(stan.tab)
+    best_len = 0
+    bx = -1
+    xs = []
+    for i in range(n):
+        x = losowe_ruchy(copy.deepcopy(stan), 100)
+        xs.append(x)
+        ile = count_s(x.tab)
+        if ile < best:
+            best = ile
+            bx = i
+            best_len = len(x.move)
+        elif ile == best and best_len > len(x.move):
+            best = ile
+            bx = i
+            best_len = len(x.move)
+        if best == 1:
+            break
+    return xs[bx]
+
+
+def zwyciestwo(stan):
+    for i in range(height):
+        for j in range(width):
+            if stan.tab[i][j] and not goal[i][j]:
+                return False
+    print("wygraliśmy :^)")
+    return True
+
+
+########################################################################################################################
+# FUNKCJE 2
+########################################################################################################################
+
+
+def change_representation(stan): # zapisujemy wszystkie pozycje komandosow
+    s = []
+    for i in range(height):
+        for j in range(width):
+            if stan.tab[i][j]:
+                s.append(Pos(i, j))
+    return s
+
+
+class Pos:
+    def __init__(self, r, c):
+        self.row = r
+        self.col = c
+
+
+class Labirynt:
+    def __init__(self, tab, h):
+        self.tab = tab
+        self.history = h
+
+
+def up(lab):
+    moved = False
+    for s in lab.tab:
+        if not wall[s.row - 1][s.col]:
+            s.row -= 1
+            moved = True
+    if moved:
+        lab.history += "U"
+    return moved
+
+
+def down(lab):
+    moved = False
+    for s in lab.tab:
+        if not wall[s.row + 1][s.col]:
+            s.row += 1
+            moved = True
+    if moved:
+        lab.history += "D"
+    return moved
+
+
+def left(lab):
+    moved = False
+    for s in lab.tab:
+        if not wall[s.row][s.col-1]:
+            s.col -= 1
+            moved = True
+    if moved:
+        lab.history += "L"
+    return moved
+
+
+def right(lab):
+    moved = False
+    for s in lab.tab:
+        if not wall[s.row][s.col+1]:
+            s.col += 1
+            moved = True
+    if moved:
+        lab.history += "R"
+    return moved
+
+
+def printss(lab):
+    for s in lab.tab:
+        print(s.row, s.col)
+    print()
+
+########################################################################################################################
+
+
+def write_out(lab):
+    fout = open("zad_output.txt", 'w')
+    fout.write(lab.history + '\n')
+    fout.close()
+    exit()
+
+
+def ss2str(lab):
+    w = ""
+    for s in lab.tab:
+        w += str(s.row) + ' ' + str(s.col) + ' '
+    return w
+
+
+def win(lab):
+    for s in lab.tab:
+        if not goal[s.row][s.col]:
             return False
     return True
 
-#funkcja do wyświetlania labiryntu
-#===================================================================================================
-def print_maze(maze: list) -> None:
-    for line in maze:
-        print(line)
 
-#funkcja uzywajaca BFS do znalezienia sciezki do wyjscia
-#===================================================================================================
+def put_kids(lab, que, done, fun):
+    r = copy.deepcopy(lab)
+    if fun(r):
+        w = ss2str(r)
+        if w not in done:
+            done.add(w)
+            que.put(r)
 
-def all_coomandos_in_G(current_positions) -> bool:
-    for commando in current_positions:
-        if commando not in G_list:
+
+def bfs(lab):
+    que = queue.Queue()
+    que.put(lab)
+    done = set()
+    done.add(ss2str(lab))
+    ile = len(lab.history)
+    while not que.empty():
+        ll = que.get()
+        if win(ll):
+            print(len(ll.history) - ile, "bfs")
+            write_out(ll)
+            return True
+        if len(ll.history) > 150:
+            write_out(ll)
+            print("przekroczony limit ruchow")
             return False
-    return True
+        put_kids(ll, que, done, right)
+        put_kids(ll, que, done, left)
+        put_kids(ll, que, done, up)
+        put_kids(ll, que, done, down)
+    print(":'(")
+    return False
 
 
-def moveAll(current_positions, move_function):
-    for i in range(len(current_positions)):
-        x,y = current_positions[i]
-        current_positions[i] = move_function(x,y)
-    return current_positions    
+########################################################################################################################
+########################################################################################################################
 
-def BFS() -> bool:
+########################################################################################################################
+# FAZA 1
+########################################################################################################################
 
-    # tablica krotek w postaci (current_positions, history, moves_made)
-    queue = [] 
-    
-    # lista z kopią obiektu commando_list: list[(int, int)]
-    # przechowuje wszystkie stany, w jakich kiedykolwiek bylismy, bez powtorzen
-    # może hashset będzie szybszy?
-    visited = [commando_list.copy()] # mozna zrobic na zbior zeby bylo szybicej
+stan0, wall, goal, height, width = read_input()
+stan0 = losowe_best(stan0, 1000)
+# printtab(wall)
+# print(stan0.move)
+# printtab(stan0.tab)
+# print(len(stan0.move))
 
-    # ilość dotychczas dokonanych ruchów
-    moves = 0 
-    #najpierw zmmniejszyć niepewność
-    
-    #Funkcja na zmnieszenie niepewności
+########################################################################################################################
+# FAZA 2
+########################################################################################################################
 
-    #sprawdzić czy na wejściu nie jest dobrze
-    if all_comandos_in_G():
-        return True
+ss = change_representation(stan0)
+lab0 = Labirynt(ss, stan0.move)
 
-    # POWINNO BYĆ LEPIEJ, JEŚLI KOLEJNOŚĆ BEDZIE LOSOWA
-    
-    queue.append((moveAll(commando_list.copy(), moveup), ["U"], 1))
-    queue.append((moveAll(commando_list.copy(), movedown), ["D"], 1))
-    queue.append((moveAll(commando_list.copy(), moveleft), ["L"], 1))
-    queue.append((moveAll(commando_list.copy(), moveright), ["R"], 1))
+bfs(lab0)
 
-    while(queue):
-        # sprawdzenie pozycji komandosów, która jeszcze nigdy wcześniej nie wystąpiła:
-        current_positions, history, moves_made = queue.pop(0)
-        
-        #print("queue size: ", len(queue))
-        #print("moves made: ", moves_made)
-
-        if moves_made >= MAX_MOVES:
-            return False
-
-        # układ pozycji komandosów, jakiego jeszcze nie próbowaliśmy
-        if current_positions not in visited: 
-            if all_coomandos_in_G(current_positions):
-                print("".join(history))
-                return True
-            
-            visited.append(current_positions)
-            
-            #rand = random(0,3)
-            dir = [(moveAll(current_positions.copy(), moveup), history + ["U"], moves_made + 1),
-                   (moveAll(current_positions.copy(), movedown), history+ ["D"], moves_made + 1),
-                   (moveAll(current_positions.copy(), moveleft), history+ ["L"], moves_made + 1),
-                   (moveAll(current_positions.copy(), moveright), history+ ["R"], moves_made + 1)]
-            random.shuffle(dir)
-            for i in range(4):
-                queue.append(dir[i])
-            '''
-            # wszyscy komandosi równocześnie wykonują ten sam ruch
-            queue.append((moveAll(current_positions.copy(), moveup), history + ["U"], moves_made + 1))
-            queue.append((moveAll(current_positions.copy(), movedown), history+ ["D"], moves_made + 1))
-            queue.append((moveAll(current_positions.copy(), moveleft), history+ ["L"], moves_made + 1))
-            queue.append((moveAll(current_positions.copy(), moveright), history+ ["R"], moves_made + 1))        
-            '''
-    return False    
+"""
+#####
+#B#S#
+#SSS#
+#SSB#
+#S#S#
+#SSS#
+#SSS#
+#####
 
 
-    
+######################
+#SSSSSSSS#SSSSSSSSSBS#
+#SSSSSSSSSSSS##SSSSSS#
+#SSSSSSSS#############
+#SSSSSS###SSSSSSSSSSS#
+#SSSSSS###SSSSSSSSSSS#
+#SSSSSSSS#SSSSSSSSSSS#
+##S#######SSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+######################
 
 
+######################
+#SSSSSSSSSSSSSSSSSSBS#
+#SSBSSSSBSSSSSSSSSSSS#
+#########S#######S####
+#SSSSS#SSSSSSSSSSSSSB#
+##SSS##SSSS###########
+#SSSS#SSSSSSSSSSSSSSS#
+#S##S###########SSSSS#
+#SSSS#SSSSSSSSSSSSSSS#
+#SSSSSSSSSS####SSSSSS#
+######################
 
-labirynt = create_maze() # lista napisów
-S_list = init_S_list(labirynt) # punkty startowe 
-commando_list = S_list.copy()  # obecne lokalizacje komandosow
-G_list = init_G_list(labirynt) # punkty docelowe
-B_list = init_B_list(labirynt) # punkty startowo-docelowe
-#print_maze(labirynt)
 
-MAX_MOVES = 150 # constant
-
-BFS()
-
-#Zminiejszanie niepeownośći to takie ruchy które mają zestackować komandosów na jednym polu przy ścianie
-#
+######################
+#SSSSSSSS#SSS##SSSSSS#
+#SSSSSSSSSSSS##SSSSSS#
+#SSSSSS###SSSSSSSSS#B#
+#SSSSSS###SSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+#####SSSSSSSSSSSSSSSS#
+#SSSSSSSSSSSSSSSSSSSS#
+######################
+"""

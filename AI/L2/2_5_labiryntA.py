@@ -1,194 +1,280 @@
-from typing import Any, Set
+# ZADANIE 5 Z PRACOWNI 2
+
+import copy
+import queue
 import random
+import time
 
-from enum import Enum
 
-#kolejka do BFS-a
-#queue = []
+def my_deepcopy(lab):
+    pri = copy.copy(lab.pri)
+    his = copy.copy(lab.history)
+    ss = []
+    for s in lab.ss:
+        ss.append([copy.copy(s[0]), copy.copy(s[1])])
+    return Labirynt(ss, his, pri)
 
-# - ściana labiryntu, nie można przejść G - cele, w któryh trzeba się znaleźć, B - punkty startowo-docelowe
-# S - punkty startowe "spacja" - puste miejsce
-#funkcje pomocnicze do ruszania sie po labiryncie
-#=================================================================================================
-def moveup(x: int, y: int) -> tuple:
-    if(iswall(x, y - 1)):
-        return (x,y)
-    return (x, y - 1)
 
-def movedown(x: int, y: int) -> tuple:
-    if(iswall(x, y + 1)):
-        return (x,y)
-    return (x, y + 1)
+class Labirynt:
+    def __init__(self, ss, h, pri):
+        self.pri = pri
+        self.ss = ss
+        self.history = h
 
-def moveleft(x: int, y: int) -> tuple:
-    if(iswall(x - 1, y)):
-        return (x,y)
-    return (x - 1, y)
+    def __lt__(self, other):#less
+        return self.pri < other.pri
 
-def moveright(x: int, y: int) -> tuple:
-    if(iswall(x + 1, y)):
-        return (x,y)
-    return (x + 1, y)
+    def __le__(self, other):#less or equal
+        return self.pri <= other.pri
 
-# funkcje pomocnicze do sprawdzania czy można przejść na dane pole
-#===================================================================================================
-def iswall(x: int, y: int) -> bool:
-    return labirynt[y][x] == "#"
+    def __gt__(self, other):#greater
+        return self.pri > other.pri
 
-def isgoal(x: int, y: int) -> bool:
-    return labirynt[y][x] == "G"
+    def __ge__(self, other):#greater or equal
+        return self.pri >= other.pri
 
-def isstart(x: int, y: int) -> bool:
-    return labirynt[y][x] == "S"
+    def __eq__(self, other):#equal
+        return self.pri == other.pri
 
-def isblank(x: int, y: int) -> bool:
-    return labirynt[y][x] == " "
 
-#funkcja do stworzenia labiryntu
-#===================================================================================================
-def create_maze() -> list:
-    maze = []
-    with open("maze.txt") as f:
-        for line in f:
-            maze.append(line.strip())
-    return maze
+def read_input():
+    fin = open("zad_input.txt", 'r')
+    ww = []
+    gg = []
+    row = 0
+    ss = []
+    gs = []
+    while line := fin.readline()[:-1]:
+        w = [False for i in range(len(line))]
+        g = [False for i in range(len(line))]
+        for x in range(len(line)):
+            if line[x] == "#":
+                w[x] = True
+            elif line[x] == "G":
+                g[x] = True
+                gs.append((row, x))
+            elif line[x] == "S":
+                ss.append([row, x])
+            elif line[x] == "B":
+                g[x] = True
+                gs.append((row, x))
+                ss.append([row, x])
+        ww.append(w)
+        gg.append(g)
+        row += 1
+    fin.close()
+    h = len(ww)
+    w = len(ww[0])
+    odl = odl_init(gs, h, w, ww)
+    return Labirynt(ss, "", 0), ww, gg, gs, h, w, odl
 
-def init_S_list(maze: list) -> list:
-    S_list = []
-    for y, line in enumerate(maze):
-        for x, char in enumerate(line):
-            if char == "S" or char == "B":
-                S_list.append((x, y))
-    return S_list
 
-def init_G_list(maze: list) -> list:
-    G_list = []
-    for y, line in enumerate(maze):
-        for x, char in enumerate(line):
-            if char == "G" or char == "B":
-                G_list.append((x, y))
-    return G_list
+def odl_init(gs, h, w, wal):
+    odl = []
+    inf = 10000
+    for i in range(h):
+        o = []
+        for j in range(w):
+            o.append(inf)
+        odl.append(o)
 
-def init_B_list(maze: list) -> list:
-    B_list = []
-    for y, line in enumerate(maze):
-        for x, char in enumerate(line):
-            if char == "B":
-                B_list.append((x, y))
-    return B_list
+    for g in gs:
+        maly_bfs(g, odl, wal)
+        # print("ooo")
 
-def all_comandos_in_G() -> bool:
-    for commando in commando_list:
-        if commando not in G_list:
+    return odl
+
+
+def maly_bfs(g0, odl, wal): # do liczenia odległości od G dla każdego dobrego punktu
+    que = queue.Queue()
+    que.put((g0[0], g0[1], 0))
+    done = set()
+    done.add((g0[0], g0[1], 0))
+    while not que.empty():
+        p = que.get()
+        odl[p[0]][p[1]] = min(odl[p[0]][p[1]], p[2])
+        x = (p[0]-1, p[1], odl[p[0]][p[1]]+1)
+        if x not in done and not wal[p[0]-1][p[1]]:
+            que.put(x)
+            done.add(x)
+        x = (p[0]+1, p[1], odl[p[0]][p[1]]+1)
+        if x not in done and not wal[p[0]+1][p[1]]:
+            que.put(x)
+            done.add(x)
+        x = (p[0], p[1]-1, odl[p[0]][p[1]]+1)
+        if x not in done and not wal[p[0]][p[1]-1]:
+            que.put(x)
+            done.add(x)
+        x = (p[0], p[1] + 1, odl[p[0]][p[1]] + 1)
+        if x not in done and not wal[p[0]][p[1] + 1]:
+            que.put(x)
+            done.add(x)
+
+
+def write_out(lab):
+    fout = open("zad_output.txt", 'w')
+    fout.write(lab.history + '\n')
+    # printss(lab)
+    fout.close()
+    print("time: ", time.process_time())
+    exit()
+
+
+def updatess(lab):
+    if len(lab.ss) <= 1:
+        return
+    elif len(lab.ss) < 5:
+        lab.ss.sort()
+        i = 1
+        while i < len(lab.ss):
+            while i < len(lab.ss) and lab.ss[i - 1] == lab.ss[i]:
+                lab.ss.remove(lab.ss[i])
+            i += 1
+    else:
+        tt = []
+        for _ in range(height):
+            tt.append([False for _ in range(width)])
+        for s in lab.ss:
+            tt[s[0]][s[1]] = True
+
+        lab.ss = []
+        for t in range(height):
+            for i in range(width):
+                if tt[t][i]:
+                    lab.ss.append([t, i])
+
+
+def up(lab):
+    moved = False
+    for s in lab.ss:
+        if not wall[s[0] - 1][s[1]]:
+            s[0] -= 1
+            moved = True
+    if moved:
+        lab.history += "U"
+        updatess(lab)
+    return moved
+
+
+def down(lab):
+    moved = False
+    for s in lab.ss:
+        if not wall[s[0] + 1][s[1]]:
+            s[0] += 1
+            moved = True
+    if moved:
+        lab.history += "D"
+        updatess(lab)
+    return moved
+
+
+def left(lab):
+    moved = False
+    for s in lab.ss:
+        if not wall[s[0]][s[1] - 1]:
+            s[1] -= 1
+            moved = True
+    if moved:
+        lab.history += "L"
+        updatess(lab)
+    return moved
+
+
+def right(lab):
+    moved = False
+    for s in lab.ss:
+        if not wall[s[0]][s[1] + 1]:
+            s[1] += 1
+            moved = True
+    if moved:
+        lab.history += "R"
+        updatess(lab)
+    return moved
+
+
+def printss(lab):
+    for s in lab.ss:
+        print(s[0], s[1])
+    print()
+
+
+def printtab(tab):
+    # print("\n".join([str(row) for row in tab]))
+    for i in tab:
+        for j in i:
+            if j:
+                print("&", end="")
+            else:
+                print(".", end="")
+        print()
+    print()
+
+
+def ss2str(lab):
+    w = ""
+    for s in lab.ss:
+        w += str(s[0]) + ' ' + str(s[1]) + ' '
+    return w
+
+
+def win(lab):
+    for s in lab.ss:
+        if not goal[s[0]][s[1]]:
             return False
     return True
 
-#funkcja do wyświetlania labiryntu
-#===================================================================================================
-def print_maze(maze: list) -> None:
-    for line in maze:
-        print(line)
 
-#funkcja uzywajaca BFS do znalezienia sciezki do wyjscia
-#===================================================================================================
+def priority(lab):  # arrival cost + estimated future cost
+    efc = 0
 
-def all_coomandos_in_G(current_positions) -> bool:
-    for commando in current_positions:
-        if commando not in G_list:
-            return False
-    return True
+    for s in lab.ss:
+        su = odl[s[0]][s[1]]
+        efc = max(efc, su)
+
+    return efc + len(lab.history)
 
 
-def moveAll(current_positions, move_function):
-    for i in range(len(current_positions)):
-        x,y = current_positions[i]
-        current_positions[i] = move_function(x,y)
-    return current_positions    
-
-def closest_to_G(current_positions):
-    min_distance = 1000
-    closeG = []
-    for i in range(len(current_positions)):
-        x,y = current_positions[i]
-
-        for j in range(len(G_list)):
-            distance = abs(x - G_list[j][0]) + abs(y - G_list[j][1])
-            if distance < min_distance or (i == 0 and j == 0):
-                min_distance = distance
-                closeG[i] == distance
-    return closeG
-
-def A() -> bool: #A* algorithm WIP
-
-    # tablica krotek w postaci (current_positions, history, moves_made)
-    queue = [] 
-    
-    # lista z kopią obiektu commando_list: list[(int, int)]
-    # przechowuje wszystkie stany, w jakich kiedykolwiek bylismy, bez powtorzen
-    # może hashset będzie szybszy?
-    visited = [commando_list.copy()] 
-
-    # ilość dotychczas dokonanych ruchów
-    moves = 0 
-    #sprawdzić czy na wejściu nie jest dobrze
-    if all_comandos_in_G():
-        return True
-
-    # POWINNO BYĆ LEPIEJ, JEŚLI KOLEJNOŚĆ BEDZIE LOSOWA
-    
-    queue.append((moveAll(commando_list.copy(), moveup), ["U"], 1))
-    queue.append((moveAll(commando_list.copy(), movedown), ["D"], 1))
-    queue.append((moveAll(commando_list.copy(), moveleft), ["L"], 1))
-    queue.append((moveAll(commando_list.copy(), moveright), ["R"], 1))
-
-    while(queue):
-        # sprawdzenie pozycji komandosów, która jeszcze nigdy wcześniej nie wystąpiła:
-
-        current_positions, history, moves_made = queue.pop(0)
-        
-        if moves_made >= MAX_MOVES:
-            return False
-
-        # układ pozycji komandosów, jakiego jeszcze nie próbowaliśmy
-        if current_positions not in visited: 
-            if all_coomandos_in_G(current_positions):
-                print("".join(history))
-                return True
-            
-            visited.append(current_positions)
-            
-            #rand = random(0,3)
-            dir = [(moveAll(current_positions.copy(), moveup), history + ["U"], moves_made + 1),
-                   (moveAll(current_positions.copy(), movedown), history+ ["D"], moves_made + 1),
-                   (moveAll(current_positions.copy(), moveleft), history+ ["L"], moves_made + 1),
-                   (moveAll(current_positions.copy(), moveright), history+ ["R"], moves_made + 1)]
-            random.shuffle(dir)
-            for i in range(4):
-                queue.append(dir[i])
-            '''
-            # wszyscy komandosi równocześnie wykonują ten sam ruch
-            queue.append((moveAll(current_positions.copy(), moveup), history + ["U"], moves_made + 1))
-            queue.append((moveAll(current_positions.copy(), movedown), history+ ["D"], moves_made + 1))
-            queue.append((moveAll(current_positions.copy(), moveleft), history+ ["L"], moves_made + 1))
-            queue.append((moveAll(current_positions.copy(), moveright), history+ ["R"], moves_made + 1))        
-            '''
-    return False    
+def put_kids(lab, que, fun):
+    r = my_deepcopy(lab)
+    if fun(r):
+        r.pri = priority(r)
+        que.put(r)
 
 
-    
+def bfs(lab):
+    que = queue.PriorityQueue()
+    que.put(lab)
+    done = set()
+    while not que.empty():
+        ll = que.get()
+        if ss2str(ll) in done:
+            continue
+        done.add(ss2str(ll))
+        if win(ll):
+            print(len(ll.history), "kroków")
+            write_out(ll)
+            return True
+        put_kids(ll, que, right)
+        put_kids(ll, que, left)
+        put_kids(ll, que, up)
+        put_kids(ll, que, down)
+    print(":'(")
+    write_out(lab)
+    return False
 
 
+########################################################################################################################
 
-labirynt = create_maze() # lista napisów
-S_list = init_S_list(labirynt) # punkty startowe 
-commando_list = S_list.copy()  # obecne lokalizacje komandosow
-G_list = init_G_list(labirynt) # punkty docelowe
-B_list = init_B_list(labirynt) # punkty startowo-docelowe
-#print_maze(labirynt)
 
-MAX_MOVES = 150 # constant
+l0, wall, goal, goal_list, height, width, odl = read_input()
+# for x in odl:
+#    print(x)
+# for i in range(height):
+#    for j in range(width):
+#        if odl[i][j]<10000:
+#            print(odl[i][j], end=" ")
+#        else:
+#            print("#", end=" ")
+#    print()
 
-A()
-
-#funkcja h musi szacować optymistycznie odległosć od punktu docelowego
-#szacować od dołu
+bfs(l0)

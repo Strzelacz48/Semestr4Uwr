@@ -2,8 +2,58 @@ import random
 from typing import Set, Any
 
 
-def next_perm(perm, n, arr, dl, inn, out, pref, to_xor): #WIP
-    return to_xor
+def next_perm(perm, n, arr, dl, inn, out, pref, to_xor):
+    k = n-1
+    if perm[k] + dl[k] == len(arr):
+        k -= 1
+        while k >= 0 and perm[k] + dl[k] + 1 == perm[k + 1]:
+            k -= 1
+        if k < 0:
+            return to_xor
+        else:
+            perm[k] += 1
+            x = perm[k] + dl[k] + 1
+            for i in range(k+1, n):
+                perm[i] = x
+                x += dl[i] + 1
+            # pref update
+            if k == 0:
+                if arr[perm[k]-1] == 1:
+                    pref += 1
+            else:
+                if arr[perm[k]-1] == 1:
+                    out[k-1] += 1
+            x = perm[k]
+            for kk in range(k, n):
+                inn[kk] = 0
+                out[kk] = 0
+                for i in range(dl[kk]):
+                    if arr[x] == 0:
+                        inn[kk] += 1
+                    x += 1
+                if x < len(arr) and arr[x] == 1:
+                    out[kk] += 1
+                x += 1
+            for i in range(x, len(arr)):
+                if arr[i] == 1:
+                    out[n - 1] += 1
+    else:
+        perm[k] += 1
+        if arr[perm[k] - 1] == 1:
+            if k != 0:
+                out[k - 1] += 1
+            else:
+                pref += 1
+        else:
+            inn[k] -= 1
+        if arr[perm[k] + dl[k] - 1] == 1:
+            out[k] -= 1
+        else:
+            inn[k] += 1
+    to_xor = min(to_xor, sum(inn) + sum(out) + pref)
+    #print(to_xor)
+    #print(perm)
+    #print()
     return next_perm(perm, n, arr, dl, inn, out, pref, to_xor)
 
 

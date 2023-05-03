@@ -1,0 +1,1 @@
+python3 validator3.py --stdio zad4 python3 3_3_zagadka.py
