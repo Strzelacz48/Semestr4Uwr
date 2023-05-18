@@ -1,5 +1,8 @@
 import java.util.HashMap;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class Car {
     int id;
     HashMap<String, Long> yearMillage;
