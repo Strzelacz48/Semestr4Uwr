@@ -134,7 +134,7 @@ pos_worth = [[99, -8, 8, 6, 6, 8, -8, 99],
              [99, -8, 8, 6, 6, 8, -8, 99]]
 
 me = 1
-d_max = 3
+d_max = 1
 
 
 def pick_move(s, my_sgn):
@@ -282,7 +282,7 @@ def stable_pos(m, s):
     return 0
 
 
-def stable_disc(m, s, player):
+def stable_disc(m, s, player):# funkcja zwraca liczbe stabilnych pionkow poprzez sprawdzenie czy w kazdym kierunku jest pionek gracza
     x, y = m
 
     a, b = True, True

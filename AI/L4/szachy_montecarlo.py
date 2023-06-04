@@ -65,16 +65,9 @@ def pick_move(game0):
 
 
 def backpr(scr, node):
-    while node.dad:
-        node.score += scr
-        node.visits += 1
-        node = node.dad
 
 
 def expand(node, state):
-    possibles = state.moves_gen()
-    for m in possibles:
-        node.kids.append(Node(m, 0, 0, [], node))
 
 
 def ucb(node, n):
@@ -85,31 +78,7 @@ def ucb(node, n):
 
 def rollout(node, state):
     score = 0
-    for _ in range(games_per_roll):
-        s = copy.deepcopy(state)
-        n = 0
-        while True:
-            n += 1
-            mg = s.moves_gen()
-            if mg:
-                s.make_move(random.choice(mg))
-            else:
-                if s.board.turn == me:
-                    score -= 1
-                else:
-                    score += 1
-                break
-            out = s.board.outcome()
-            if out:
-                if out.winner is None:
-                    pass
-                elif out.winner == me:
-                    score += 1
-                else:
-                    score -= 1
-                break
-            if n > 20:
-                break
+    
     return score
 
 

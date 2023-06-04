@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
+
 # COŚ CO KOMUNIKUJE SIĘ ZE SPRAWDZACZKĄ SKOSOWĄ
 #agent_1 = "szachy_ab.py"
 import copy
