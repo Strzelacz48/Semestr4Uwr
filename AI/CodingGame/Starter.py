@@ -77,6 +77,7 @@ def find_path_dfs(start_idx: int, end_idx: int, path_taken: list[int], visited: 
             return find_path_dfs(neighbor, end_idx, path_taken, visited)
     return path_taken
     
+#obsolete
 def how_long_same_path(idx1: int, idx2: int):
     path1 = find_path_dfs(my_bases[0], idx1, [my_bases[0]], [])
     path2 = find_path_dfs(my_bases[0], idx2, [my_bases[0]], [])
@@ -172,83 +173,32 @@ while True:
 
     # TODO: choose actions to perform and push them into actions. E.g:
     #===========================================================================
-    if turn == 1:
-        n = 3
+    #do przepisania na wiele baz
+    for baza in my_bases:
+        if turn == 1:
+            n = 3
 
-    for tup in cell_distances:
-        cell = cells[tup[1]]
-        if cell.resources > 0 and n> 0 and cell.index not in commited_cells:
-            cell_distances.remove(tup)
-            n -= 1
-            past_actions.append(f'LINE {my_bases[0]} {cell.index} 2')
-            commited_cells.append(cell.index)
+        for tup in cell_distances:
+            cell = cells[tup[1]]
+            if cell.resources > 0 and n> 0 and cell.index not in commited_cells:
+                cell_distances.remove(tup)
+                n -= 1
+                if cell.cell_type == 1:
+                    past_actions.append(f'LINE {baza} {cell.index} 3')
+                else:
+                    past_actions.append(f'LINE {baza} {cell.index} 2')
+                commited_cells.append(cell.index)
 
-    for idx in commited_cells:
-        #actions.append(f'MESSAGE {idx}')
-        if cells[idx].my_ants > 0:
-            #actions.append(f'MESSAGE removed : {idx}')
-            commited_cells.remove(idx)
-            n += 1
+        for idx in commited_cells:
+            #actions.append(f'MESSAGE {idx}')
+            if cells[idx].my_ants > 0:
+                #actions.append(f'MESSAGE removed : {idx}')
+                commited_cells.remove(idx)
+                n += 1
 
 
     actions.extend(past_actions)
-    #if cell_distances_unsorted[closest_egg][0] < all_my_ants:
-    #    actions.append(f'LINE {my_bases[0]} {closest_egg} 3')
-    #    if cell_distances_unsorted[closest_gem][0] <= all_my_ants - cell_distances_unsorted[closest_egg][0] + how_long_same_path(closest_egg, closest_gem):
-    #        actions.append(f'LINE {my_bases[0]} {closest_gem} 3')
-
-    #if turn < 15 and closest_egg != my_bases[0]:
-        #actions.append(f'MESSAGE EGGS')
-        #actions.append(f'LINE {my_bases[0]} {closest_egg} 3')
     
-        
-    
-
-    
-
-    """
-
-    all_my_ants = my_total_ants()
-
-    closest_egg = closest_eggs_bfs(my_bases[0])
-    closest_gem = closest_gems_bfs(my_bases[0])
-
-    
-
-    #collecting direct resources
-    for neigh in cells[my_bases[0]].neighbors :
-        if cells[neigh].cell_type != 0  and f'BEACON {neigh} 2' not in past_actions: #and cells[neigh].resources > 0:
-            past_actions.append(f'BEACON {neigh} 2')
-            break
-        
-    #zaczynamy od najblizszych kryształów
-    if closest_gem != my_bases[0] and cells[closest_gem].resources > 0:
-        #actions.append(f'MESSAGE GEMS')
-        if f'LINE {my_bases[0]} {closest_gem} 2' not in past_actions:
-            past_actions.append(f'LINE {my_bases[0]} {closest_gem} 2')
-
-    #zaczynamy od najblizszych jaj
-    if closest_egg != my_bases[0] and cells[closest_egg].resources > 0:
-        #actions.append(f'MESSAGE EGGS')
-        if f'LINE {my_bases[0]} {closest_egg} 2' not in past_actions:
-            past_actions.append(f'LINE {my_bases[0]} {closest_egg} 2')
-
-    for cell in cells:
-
-for cell_idx in cell_distances:
-            cell = cells[cell_idx[1]]
-            if cell.index == cell_idx[1] and cell.resources > 0 and used_ants < all_my_ants:
-                break
-
-    for cell in cells:
-        
-        
-            break
-        elif cell.resources > 0 and not is_close_to_base(cell, my_bases):
-            actions.append(f'MESSAGE CELLS')
-            actions.append(f'LINE {my_bases[0]} {cell.index} 2')
-            break
-    """
     #==============================================================================
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
     if len(actions) == 0:
