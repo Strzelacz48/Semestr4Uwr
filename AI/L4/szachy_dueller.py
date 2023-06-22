@@ -5,7 +5,7 @@
 #agent_1 = "szachy_ab.py"
 import copy
 import sys
-from game import Chess
+from ai_dueler_2023 import Chess
 import chess
 #from agent_1 import pick_move  # TU WRZUĆ TO CO MA WYBIERAĆ RUCHY
 from szachy_ab import pick_move  # TU WRZUĆ TO CO MA WYBIERAĆ RUCHY
