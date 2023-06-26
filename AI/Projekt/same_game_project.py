@@ -6,7 +6,7 @@ from tqdm import tqdm
 from time import time
 from random import choice
 #create 16x12 board
-board = []
+main_board = []
 colors = ['R', 'G', 'B', 'Y', 'P', '-']#red, green, blue, yellow, purple
 letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q"]
 '''
@@ -20,11 +20,11 @@ for i in range(0, 12):
 
 visited_columns = list()
 # game implementation ==============================================================================
-def game_init(diff : int):#diff = 1, 2, 3
+def game_init(diff : int, board):#diff = 1, 2, 3
     for i in range(0, 16):
         pom = []
         for j in range(0, 12):
-            pom.append(random.choice(colors[0:diff+1]))#random color from colors[0:diff+2] + 1 for testing
+            pom.append(random.choice(colors[0:diff+2]))#random color from colors[0:diff+2] + 1 for testing
             #board[j][i] = random.choice(colors[0:diff+1])#random color from colors[0:diff+2] + 1 for testing
         board.append(pom)
 
@@ -106,7 +106,7 @@ def delete_blocks(x : int, y : int, cur_board):
         return -1
     else:
         n = delete_blocks_rek(x, y, cur_board)
-        print("Deleted: ", n)
+        #print("Deleted: ", n)
         #print_board()
         for i in visited_columns:
             move_blocks_up(i, cur_board)
@@ -115,29 +115,36 @@ def delete_blocks(x : int, y : int, cur_board):
         visited_columns.clear()
         return points(n)
 
+def valid_move(x : int, y : int, cur_board):
+    if x == -1 or y == -1:
+        return False
+    if cur_board[x][y] == colors[5]:
+        return False
+    else:
+        return True
+
+def translate(x : int, y : int):
+    if x in letters:
+        x = ord(x) - 97
+    else:
+        x = int(x)
+    y = int(y)
+    return x,y
+
 def game_loop(draw_board : bool):
     points = 0
-    can_make_a_move(board)
-    while(can_make_a_move(board)):
+    #can_make_a_move(main_board)
+    while(can_make_a_move(main_board)):
         if draw_board:
-            print_board(board)
-        #make a move
-        #delete blocks
-        #move blocks
+            print_board(main_board)
         x = -1
         y = -1
-        n = delete_blocks(x, y, board)
-        while(n == -1):
+        while not valid_move(x, y, main_board):
             print("Possible moves:")
-            print(possible_moves(copy.deepcopy(board)))
+            print(possible_moves(copy.deepcopy(main_board)))
             x,y = input("Podaj koordynaty x, y: ").split()
-            if x in letters:
-                x = ord(x) - 97
-            else:
-                x = int(x)
-            y = int(y)
-            n = delete_blocks(x, y, board)
-        points += n
+            x,y = translate(x,y)
+        points += delete_blocks(x, y, main_board)
         print("Points: ", points)
     print("Game over! Your score: ", points)
 #===================================================================================================
@@ -149,7 +156,7 @@ def possible_moves(cur_board):
         for j in range(0, 15):
             if cur_board[j][i] != colors[5] and (cur_board[j][i] == cur_board[j+1][i] or cur_board[j][i] == cur_board[j][i+1]):
                 move_score = points(delete_blocks_rek(j, i, cur_board))
-                moves.append([j, i, move_score])
+                moves.append((j, i, move_score))
     return moves
 
 #returns true if game is over
@@ -158,7 +165,7 @@ def game_over(cur_board):
 
 #returns random x, y from possible moves
 def random_move(cur_board):
-    moves = possible_moves(cur_board.deepcopy())
+    moves = possible_moves(deepcopy(cur_board))
     if len(moves) == 0:
         return -1, -1
     else:
@@ -174,7 +181,7 @@ class Node:
         self.moves_made = moves_made #needed?
         self.children = {}
         self.best_score = 0
-        self.score = parent.score + added_score
+        self.score = added_score
         self.sum_of_scores = 0
         self.games = 0
         self.game_over = False
@@ -186,11 +193,15 @@ class Node:
     def expand(self):
         assert not self.expanded # should be good
         p_moves = possible_moves(copy.deepcopy(self.board))
-        if p_moves.len() > 0:#
+        if len(p_moves) > 0:# [1,2,3]
             for move in p_moves:
                 board_copy = copy.deepcopy(self.board)
-                delete_blocks_rek(move[0], move[1], board_copy)
-                self.children[move] = Node(board_copy, move[2], self, self.moves_made.append(move))#Very important
+                delete_blocks(move[0], move[1], board_copy)
+                test1 = move[2] + self.score
+                test2 = deepcopy(self.moves_made)
+                test2.append(move)
+                test3 = Node(board_copy, test1, self, test2)#Very important
+                self.children[move] = test3
         else:
             self.children = None
             self.game_over = True
@@ -252,49 +263,56 @@ class MCTS:# WIP
         self.root = self.root.children[move]
 
 
-def main(iterations, verbose=False):#TODO
-    game_init(1)
+def main(board, iterations, verbose=True):
+    #game_init(1, board)
     mcts = MCTS(board)
     print(f'\nStart board:\n')
     print_board(board)
     print('\nMoves:')
     #list_of_moves = []
+    score = 0
     while True:
         if verbose:
-            moves = game.get_moves()
+            print_board(board)
+            moves = possible_moves(deepcopy(board))#game.get_moves()
             print('\nAvailable moves:')
-            for color in range(5):
-                print(f'{color}: ', end='')
-                for move in moves[color]:
-                    print(f'{move[0]} ', end='')
-                print()
+            print(moves)
         mcts.run(iterations)
         move = mcts.get_move()
-        if game.game_over or move == None:
-            print(f'\nGame over!\nEnd board:\n{game}')
+        if verbose:
+            print(f'\nBest move: {move}')
+        #pom = can_make_a_move(board)
+        if mcts.root.game_over or move == None:
+            print(f'\nGame over!\nEnd board:\n')
+            print_board(board)
             break
-        game.move(move)
+        score += move[2]
+        if valid_move(move[0], move[1], board):
+            delete_blocks(move[0], move[1], board)
         mcts.make_move(move)
         #list_of_moves.append(move)
-        print(move)
+        #print(move)
         if verbose:
-            print(f'Score: {game.score}')
-            print(f'\n{game}')
+            print(f'Score: {score}')
+            #print(f'\n{game}')
 
-    print('\nFinal score:', game.score)
+    print('\nFinal score:', score)
     #return list_of_moves
         
 if __name__ == '__main__':
     start = time()
-    game = SameGame(15)
-    sgame = deepcopy(game)
+    game_init(3,main_board)
+    game = deepcopy(main_board)
+    #sgame = deepcopy(game)
     #mcts = MCTS(game)
     #mcts.run(1000)
     #print(f'\nFinal score: {mcts.root.best_score}')
-    main(game, 50)
+    main(game, 500)#TODO
     end = time()
     t = end - start
     print(f'\nTime: {t: .2f} s')
+    print('Czy potrafisz lepiej?')
+    game_loop(True)
     # for move in moves:
     #     sgame.move(move)
     # print(f'\nFinal board:\n{sgame}')
@@ -302,9 +320,9 @@ if __name__ == '__main__':
 #===================================================================================================
 
 #MAIN
-game_init(1)
+#game_init(1)
 #print_board()
-game_loop(True)
+#game_loop(True)
 
 '''
 #Stolen code
