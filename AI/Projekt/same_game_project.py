@@ -1,9 +1,10 @@
 import random
 import copy
+from copy import deepcopy
 from math import sqrt,log
-from util import Pos
 from tqdm import tqdm
 from time import time
+from random import choice
 #create 16x12 board
 board = []
 colors = ['R', 'G', 'B', 'Y', 'P', '-']#red, green, blue, yellow, purple
@@ -27,7 +28,7 @@ def game_init(diff : int):#diff = 1, 2, 3
             #board[j][i] = random.choice(colors[0:diff+1])#random color from colors[0:diff+2] + 1 for testing
         board.append(pom)
 
-def print_board():
+def print_board(cur_board):
     letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q"]
     print("  ", end = " ")
     for i in range(0, 16):
@@ -39,13 +40,13 @@ def print_board():
         else:
             print(i, end = " ")
         for j in range(0, 16):
-            print(board[j][i], end = " ")
+            print(cur_board[j][i], end = " ")
         print()
 
-def can_make_a_move():
+def can_make_a_move(cur_board):
     for i in range(0, 11):
         for j in range(0, 15):
-            if board[j][i] != colors[5] and (board[j][i] == board[j+1][i] or board[j][i] == board[j][i+1]):
+            if cur_board[j][i] != colors[5] and (cur_board[j][i] == cur_board[j+1][i] or cur_board[j][i] == cur_board[j][i+1]):
                 #print("Can make a move at ", j, " ", i)
                 return True
     return False
@@ -53,27 +54,27 @@ def can_make_a_move():
 def points(n : int):
     return (n-2)*(n-2)
 
-def move_blocks_up(x : int):#Works
+def move_blocks_up(x : int, cur_board):#Works
     finished = False
     while not finished:
         finished = True
         for i in range(0, 11):
-            if board[x][i] == colors[5] and board[x][i+1] != colors[5]:
+            if cur_board[x][i] == colors[5] and cur_board[x][i+1] != colors[5]:
                 finished = False
                 for j in range(i, 11):
-                    board[x][j] = board[x][j+1]
-                board[x][11] = colors[5]
+                    cur_board[x][j] = cur_board[x][j+1]
+                cur_board[x][11] = colors[5]
 
-def move_blocks_left():#DZIALA
+def move_blocks_left(cur_board):#DZIAŁA
     finished = False
     while not finished:
         finished = True
         for i in range(0, 15):
-            if board[i][0] == colors[5] and board[i+1][0] != colors[5]:
+            if cur_board[i][0] == colors[5] and cur_board[i+1][0] != colors[5]:
                 finished = False
                 for k in range(0, 12):
-                    board[i][k] = board[i+1][k]
-                    board[i+1][k] = colors[5]
+                    cur_board[i][k] = cur_board[i+1][k]
+                    cur_board[i+1][k] = colors[5]
                     '''
             if not finished:
                 for i in range(0, 12):
@@ -98,35 +99,34 @@ def delete_blocks_rek(x : int, y : int, cur_board):
     #board[x][y] = 0
     return total_deleted + 1
 
-def delete_blocks(x : int, y : int):
+def delete_blocks(x : int, y : int, cur_board):
     if x == -1 or y == -1:
         return -1
-    if board[x][y] == colors[5]:
+    if cur_board[x][y] == colors[5]:
         return -1
     else:
-        n = delete_blocks_rek(x, y, board)
+        n = delete_blocks_rek(x, y, cur_board)
         print("Deleted: ", n)
         #print_board()
         for i in visited_columns:
-            move_blocks_up(i)
+            move_blocks_up(i, cur_board)
         #print_board()
-        move_blocks_left()
+        move_blocks_left(cur_board)
         visited_columns.clear()
         return points(n)
 
 def game_loop(draw_board : bool):
     points = 0
-    can_make_a_move()
-    while(can_make_a_move()):
+    can_make_a_move(board)
+    while(can_make_a_move(board)):
         if draw_board:
-            print_board()
+            print_board(board)
         #make a move
         #delete blocks
         #move blocks
-        #add new blocks
         x = -1
         y = -1
-        n = delete_blocks(x, y)
+        n = delete_blocks(x, y, board)
         while(n == -1):
             print("Possible moves:")
             print(possible_moves(copy.deepcopy(board)))
@@ -136,13 +136,12 @@ def game_loop(draw_board : bool):
             else:
                 x = int(x)
             y = int(y)
-            n = delete_blocks(x, y)
+            n = delete_blocks(x, y, board)
         points += n
         print("Points: ", points)
     print("Game over! Your score: ", points)
 #===================================================================================================
 #MCTS
-
 #returns list of possible moves given current board
 def possible_moves(cur_board):
     moves = []
@@ -152,84 +151,52 @@ def possible_moves(cur_board):
                 move_score = points(delete_blocks_rek(j, i, cur_board))
                 moves.append([j, i, move_score])
     return moves
+
+#returns true if game is over
+def game_over(cur_board):
+    return len(possible_moves(deepcopy(cur_board))) == 0
+
 #returns random x, y from possible moves
 def random_move(cur_board):
     moves = possible_moves(cur_board.deepcopy())
     if len(moves) == 0:
         return -1, -1
     else:
-        return random.choice(moves)[0:2]#
+        return random.choice(moves)[0:3]#
     
 c = sqrt(2)
 
+
 class Node:
-    def __init__(self, parent=None):
+    def __init__(self, board, added_score, parent=None, moves_made=[]):
         self.parent = parent
-        self.board = copy.deepcopy(parent.board)
-        self.moves_made = []
+        self.board = board
+        self.moves_made = moves_made #needed?
         self.children = {}
         self.best_score = 0
+        self.score = parent.score + added_score
         self.sum_of_scores = 0
         self.games = 0
+        self.game_over = False
         self.expanded = False
 
     def get_UCB(self, root):
         return self.best_score + c * sqrt(log(root.games) / (self.games + 1))
 
-    def expand(self):#WIP
-        assert not self.expanded
-        moves = possible_moves(copy.deepcopy(self.board))#
-        if any(k != [] for k in moves.values()):
-            for color, moves in moves.items():
-                for move in moves:
-                    game_copy = copy.deepcopy(self.game)
-                    game_copy.move(move[0])
-                    self.children[move[0]] = Node(game_copy, self)
-        else:
-            self.children = None
-            self.game.game_over = True
-        self.expanded = True
-
-def mcts(cur_board):
-    return
-
-#Stolen code
-
-
-
-class Node:
-    def __init__(self, game: SameGame, parent=None):
-        self.game = game
-        self.parent = parent
-        self.children = {}
-        self.best_score = 0
-        self.sum_of_scores = 0
-        self.games = 0
-        self.expanded = False
-        
-    def get_avg_score(self):
-        if self.games == 0:
-            return 0
-        return self.sum_of_scores / self.games
-
-    def get_UCB(self, root):
-        return self.best_score + c * sqrt(log(root.games) / (self.games + 1))
-    
     def expand(self):
-        assert not self.expanded
-        moves = self.game.get_moves()
-        if any(k != [] for k in moves.values()):
-            for color, moves in moves.items():
-                for move in moves:
-                    game_copy = deepcopy(self.game)
-                    game_copy.move(move[0])
-                    self.children[move[0]] = Node(game_copy, self)
+        assert not self.expanded # should be good
+        p_moves = possible_moves(copy.deepcopy(self.board))
+        if p_moves.len() > 0:#
+            for move in p_moves:
+                board_copy = copy.deepcopy(self.board)
+                delete_blocks_rek(move[0], move[1], board_copy)
+                self.children[move] = Node(board_copy, move[2], self, self.moves_made.append(move))#Very important
         else:
             self.children = None
-            self.game.game_over = True
+            self.game_over = True
         self.expanded = True
-    
-    def update(self, score):
+
+    def update(self, score):#should be good
         current = self
         while current is not None:
             if score > current.best_score:
@@ -237,17 +204,24 @@ class Node:
             current.sum_of_scores += score
             current.games += 1
             current = current.parent
-        
-    def simulate(self):
-        simulated_game = deepcopy(self.game)
-        while not simulated_game.game_over:
-            simulated_game.random_move()
-        return simulated_game.score
-    
 
-class MCTS:
-    def __init__(self, game: SameGame):
-        self.root = Node(game, None)
+    def simulate(self):
+        simulated_game = deepcopy(self.board)
+        sim_score = self.score
+        while can_make_a_move(simulated_game):
+            move = random_move(simulated_game)
+            delete_blocks_rek(move[0], move[1], simulated_game)#also have to move the blocks
+            for i in visited_columns:
+                move_blocks_up(i, simulated_game)
+            #print_board()
+            move_blocks_left(simulated_game)
+            visited_columns.clear()
+            sim_score += move[2]
+        return sim_score
+    
+class MCTS:# WIP
+    def __init__(self, board):
+        self.root = Node(board, 0, None)
         
     def select(self):
         selected = self.root
@@ -257,7 +231,7 @@ class MCTS:
             if all(n.expanded for n in selected.children.values()):
                 selected = max(selected.children.values(), key=lambda x: x.get_UCB(self.root))
             else:
-                selected = choice([n for n in selected.children.values() if not n.expanded])
+                selected = choice([n for n in selected.children.values() if not n.expanded])#losowo wybrany nie rozszerzony node
         return selected
             
     def run(self, iterations):
@@ -276,11 +250,13 @@ class MCTS:
     
     def make_move(self, move):
         self.root = self.root.children[move]
-    
-        
-def main(game: SameGame, iterations, verbose=False):
-    mcts = MCTS(game)
-    print(f'\nStart board:\n{game}')
+
+
+def main(iterations, verbose=False):#TODO
+    game_init(1)
+    mcts = MCTS(board)
+    print(f'\nStart board:\n')
+    print_board(board)
     print('\nMoves:')
     #list_of_moves = []
     while True:
@@ -324,7 +300,95 @@ if __name__ == '__main__':
     # print(f'\nFinal board:\n{sgame}')
     # print(f'\nFinal score: {sgame.score}')
 #===================================================================================================
+
 #MAIN
 game_init(1)
 #print_board()
 game_loop(True)
+
+'''
+#Stolen code
+
+
+
+class NodeA:
+    def __init__(self, game: SameGame, parent=None):
+        self.game = game
+        self.parent = parent
+        self.children = {}
+        self.best_score = 0
+        self.sum_of_scores = 0
+        self.games = 0
+        self.expanded = False
+        
+    def get_avg_score(self):
+        if self.games == 0:
+            return 0
+        return self.sum_of_scores / self.games
+
+    def get_UCB(self, root):
+        return self.best_score + c * sqrt(log(root.games) / (self.games + 1))
+    
+    def expand(self):
+        assert not self.expanded
+        moves = self.game.get_moves()
+        if any(k != [] for k in moves.values()):
+            for color, moves in moves.items():
+                for move in moves:
+                    game_copy = deepcopy(self.game)
+                    game_copy.move(move[0])
+                    self.children[move[0]] = NodeA(game_copy, self)
+        else:
+            self.children = None
+            self.game.game_over = True
+        self.expanded = True
+    
+    def update(self, score):
+        current = self
+        while current is not None:
+            if score > current.best_score:
+                current.best_score = score
+            current.sum_of_scores += score
+            current.games += 1
+            current = current.parent
+        
+    def simulate(self):
+        simulated_game = deepcopy(self.game)
+        while not simulated_game.game_over:
+            simulated_game.random_move()
+        return simulated_game.score
+    
+
+class MCTSA:
+    def __init__(self, game: SameGame):
+        self.root = NodeA(game, None)
+        
+    def select(self):
+        selected = self.root
+        while selected.expanded:
+            if selected.children is None:
+                return False
+            if all(n.expanded for n in selected.children.values()):
+                selected = max(selected.children.values(), key=lambda x: x.get_UCB(self.root))
+            else:
+                selected = choice([n for n in selected.children.values() if not n.expanded])
+        return selected
+            
+    def run(self, iterations):
+        for _ in range(iterations):
+            selected = self.select()
+            if not selected:
+                continue
+            selected.expand()
+            score = selected.simulate()
+            selected.update(score)
+    
+    def get_move(self):
+        if not self.root.children:
+            return None
+        return max(self.root.children, key=lambda k: self.root.children[k].games)
+    
+    def make_move(self, move):
+        self.root = self.root.children[move]
+    
+        '''

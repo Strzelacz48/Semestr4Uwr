@@ -16,3 +16,10 @@ board[0][0] = 20000
 print(board)
 print(test1_board)
 print(test2_board)
+
+a = {[1, 2, 3], [4, 5, 6], [0, 0, 0]}
+print(a)
+if any(a[k][2] > 0 for k in a):
+    print(a)
+else:
+    print("none")
